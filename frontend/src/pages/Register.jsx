@@ -67,7 +67,7 @@ function Register() {
         JSON.stringify(response.data.user)
       );
 
-      navigate('/');
+      navigate('/chat');
     } catch (err) {
       setError(
         err.response?.data?.message ||
