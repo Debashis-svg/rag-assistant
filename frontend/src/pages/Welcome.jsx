@@ -1,9 +1,51 @@
 import { ArrowRight, FileText, MessageCircle, Sparkles } from 'lucide-react';
+import { useEffect, useState } from 'react';
 import { Link } from 'react-router-dom';
 
 import BrandMark from '../components/BrandMark.jsx';
 
+const conversationMessages = [
+  {
+    role: 'user',
+    question: 'Can you summarize this document for me?',
+    content: 'Can you summarize this document for me?'
+  },
+  {
+    role: 'assistant',
+    content: 'Of course. I found the main ideas and organized them into a concise summary with the relevant sources.'
+  },
+  {
+    role: 'user',
+    content: 'What are the key points from chapter two?'
+  },
+  {
+    role: 'assistant',
+    content: 'Chapter two focuses on three central themes. I can also walk you through each one in more detail.'
+  },
+  {
+    role: 'user',
+    content: 'Find the important numbers in this report.'
+  },
+  {
+    role: 'assistant',
+    content: 'I found the key figures and their surrounding context, so you can understand what each number means.'
+  }
+];
+
 function Welcome() {
+  const [visibleMessageCount, setVisibleMessageCount] = useState(1);
+
+  useEffect(() => {
+    const isComplete = visibleMessageCount === conversationMessages.length;
+    const rotation = window.setTimeout(() => {
+      setVisibleMessageCount((current) =>
+        current >= conversationMessages.length ? 1 : current + 1
+      );
+    }, isComplete ? 3200 : 2300);
+
+    return () => window.clearTimeout(rotation);
+  }, [visibleMessageCount]);
+
   return (
     <main className="relative min-h-screen overflow-hidden bg-[#f4f8f8] text-slate-950">
       <div className="pointer-events-none absolute -left-24 top-20 h-72 w-72 rounded-full bg-cyan-200/40 blur-3xl" />
@@ -89,12 +131,25 @@ function Welcome() {
               <span className="h-2.5 w-2.5 rounded-full bg-emerald-400 shadow-[0_0_12px_rgba(52,211,153,0.8)]" />
             </div>
 
-            <div className="space-y-4 py-7">
-              <div className="ml-auto max-w-[78%] rounded-2xl rounded-br-md bg-cyan-300 px-4 py-3 text-sm font-semibold leading-6 text-slate-950">
-                What are the key ideas in this document?
-              </div>
-              <div className="max-w-[88%] rounded-2xl rounded-bl-md border border-white/10 bg-white/10 px-4 py-4 text-sm leading-6 text-slate-200">
-                I found the main themes and supporting details. Here is a concise summary with the relevant sources.
+            <div className="flex h-64 flex-col justify-end overflow-hidden py-7">
+              <div
+                key={visibleMessageCount}
+                className="space-y-4 animate-[conversation-stack-in_1100ms_cubic-bezier(0.16,1,0.3,1)]"
+              >
+                {conversationMessages
+                  .slice(0, visibleMessageCount)
+                  .map((message, index) => (
+                    <div
+                      key={`${index}-${message.role}`}
+                      className={`max-w-[88%] rounded-2xl px-4 py-3 text-sm leading-6 ${
+                        message.role === 'user'
+                          ? 'ml-auto rounded-br-md bg-cyan-300 font-semibold text-slate-950'
+                          : 'rounded-bl-md border border-white/10 bg-white/10 text-slate-200'
+                      }`}
+                    >
+                      {message.content}
+                    </div>
+                  ))}
               </div>
             </div>
 
