@@ -1,6 +1,18 @@
+import fs from 'fs/promises';
+
 import Chat from '../models/Chat.js';
 import Document from '../models/Document.js';
 import { processDocument } from '../services/documentService.js';
+
+const removeTemporaryFile = async (filePath) => {
+  try {
+    await fs.unlink(filePath);
+  } catch (error) {
+    if (error.code !== 'ENOENT') {
+      console.error('Unable to remove temporary upload:', error.message);
+    }
+  }
+};
 
 const processWithTimeout = (options, timeoutMs = 120000) =>
   Promise.race([
@@ -77,6 +89,7 @@ const uploadDocument = async (req, res) => {
     } catch (error) {
       document.status = 'failed';
       await document.save();
+      await removeTemporaryFile(file.path);
 
       console.error(
         `Document processing failed for ${file.originalname}:`,
@@ -90,6 +103,10 @@ const uploadDocument = async (req, res) => {
             : 'Unable to read or index this document.'
       });
     }
+
+    // The indexed chunks are stored in Pinecone, so the original PDF is no
+    // longer needed after processing and should not consume disk space.
+    await removeTemporaryFile(file.path);
 
     chat.documentIds = [document._id];
     await chat.save();

@@ -1,6 +1,8 @@
 import express from 'express';
 import cors from 'cors';
 import dotenv from 'dotenv';
+import fs from 'fs/promises';
+import path from 'path';
 
 import connectDB from './config/db.js';
 
@@ -9,6 +11,28 @@ import documentRoutes from './routes/documentRoutes.js';
 import chatRoutes from './routes/chatRoutes.js';
 
 dotenv.config();
+
+const cleanupOldUploads = async () => {
+  const uploadsDirectory = path.resolve('uploads');
+
+  try {
+    const files = await fs.readdir(uploadsDirectory);
+
+    await Promise.all(
+      files.map((file) =>
+        fs.unlink(path.join(uploadsDirectory, file)).catch((error) => {
+          console.error(`Unable to remove old upload ${file}:`, error.message);
+        })
+      )
+    );
+  } catch (error) {
+    if (error.code !== 'ENOENT') {
+      console.error('Unable to clean old uploads:', error.message);
+    }
+  }
+};
+
+await cleanupOldUploads();
 
 const app = express();
 
