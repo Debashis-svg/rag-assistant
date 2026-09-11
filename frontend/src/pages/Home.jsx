@@ -1,6 +1,6 @@
 import { useEffect, useState } from 'react';
 import { useNavigate } from 'react-router-dom';
-import { Menu } from 'lucide-react';
+import { Loader2, Menu } from 'lucide-react';
 
 import api from '../api/api.js';
 import Sidebar from '../components/Sidebar.jsx';
@@ -27,6 +27,7 @@ function Home() {
   const [documents, setDocuments] = useState([]);
   const [chats, setChats] = useState([]);
   const [messages, setMessages] = useState([]);
+  const [isLoading, setIsLoading] = useState(true);
 
   const currentChatTitle =
     chats.find((chat) => chat.id === activeChatId)?.title ||
@@ -54,6 +55,8 @@ function Home() {
         if (error.response?.status === 401) {
           navigate('/login');
         }
+      } finally {
+        setIsLoading(false);
       }
     };
 
@@ -95,6 +98,7 @@ function Home() {
   };
 
   const handleSelectChat = async (chatId) => {
+    setIsLoading(true);
     setActiveChatId(chatId);
     setSelectedDocumentIds([]);
     setDocuments([]);
@@ -130,6 +134,8 @@ function Home() {
       }
     } catch (error) {
       setMessages([]);
+    } finally {
+      setIsLoading(false);
     }
   };
 
@@ -210,6 +216,15 @@ function Home() {
           setDocuments={setDocuments}
           onDocumentUploaded={handleDocumentUploaded}
         />
+
+        {isLoading && (
+          <div className="pointer-events-none absolute inset-0 z-10 flex items-center justify-center bg-white/70 backdrop-blur-[1px] dark:bg-black/70">
+            <div className="flex items-center gap-3 rounded-full border border-slate-200 bg-white px-4 py-3 text-sm font-medium text-slate-600 shadow-lg dark:border-neutral-700 dark:bg-neutral-900 dark:text-slate-300">
+              <Loader2 size={18} className="animate-spin" />
+              Loading your chats...
+            </div>
+          </div>
+        )}
 
       </main>
 
