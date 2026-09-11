@@ -219,10 +219,12 @@ function Home() {
 
         {isLoading && (
           <div className="pointer-events-none absolute inset-x-0 bottom-0 top-16 z-10 flex items-center justify-center bg-white/70 backdrop-blur-[1px] dark:bg-black/70">
-            <div className="flex items-center gap-3 rounded-full border border-slate-200 bg-white px-4 py-3 text-sm font-medium text-slate-600 shadow-lg dark:border-neutral-700 dark:bg-neutral-900 dark:text-slate-300">
-              <Loader2 size={18} className="animate-spin" />
-              Loading your chats...
-            </div>
+            <Loader2
+              size={28}
+              strokeWidth={1.8}
+              className="animate-spin text-slate-500 dark:text-slate-300"
+              aria-label="Loading"
+            />
           </div>
         )}
 
