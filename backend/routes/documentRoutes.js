@@ -10,10 +10,11 @@ import {
 } from '../controllers/documentController.js';
 
 const router = express.Router();
+const uploadsDirectory = path.resolve('uploads');
 
 const storage = multer.diskStorage({
   destination: (req, file, cb) => {
-    cb(null, 'uploads/');
+    cb(null, uploadsDirectory);
   },
 
   filename: (req, file, cb) => {

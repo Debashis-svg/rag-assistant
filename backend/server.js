@@ -16,6 +16,7 @@ const cleanupOldUploads = async () => {
   const uploadsDirectory = path.resolve('uploads');
 
   try {
+    await fs.mkdir(uploadsDirectory, { recursive: true });
     const files = await fs.readdir(uploadsDirectory);
 
     await Promise.all(
@@ -26,9 +27,7 @@ const cleanupOldUploads = async () => {
       )
     );
   } catch (error) {
-    if (error.code !== 'ENOENT') {
-      console.error('Unable to clean old uploads:', error.message);
-    }
+    console.error('Unable to clean old uploads:', error.message);
   }
 };
 
