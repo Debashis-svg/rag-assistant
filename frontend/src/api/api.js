@@ -1,7 +1,12 @@
 import axios from 'axios';
 
+const apiRoot = (
+  import.meta.env.VITE_API_URL ||
+  'http://localhost:4000'
+).replace(/\/$/, '');
+
 const api = axios.create({
-  baseURL: `${import.meta.env.VITE_API_URL}/auth`
+  baseURL: `${apiRoot}/api`
 });
 
 api.interceptors.request.use(
