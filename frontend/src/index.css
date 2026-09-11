@@ -73,3 +73,23 @@ textarea {
 #root {
   min-height: 100vh;
 }
+
+.chat-user-avatar {
+  background-color: #e2e8f0;
+  color: #334155;
+}
+
+html.dark .chat-user-avatar {
+  background-color: #334155;
+  color: #f8fafc;
+}
+
+.chat-bot-avatar {
+  background-color: #0f172a;
+  color: #ffffff;
+}
+
+html.dark .chat-bot-avatar {
+  background-color: #f8fafc;
+  color: #0f172a;
+}

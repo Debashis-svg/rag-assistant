@@ -10,8 +10,16 @@ import extractWithOCR from './ocrService.js';
 
 const embeddings = new GoogleGenerativeAIEmbeddings({
   apiKey: process.env.GEMINI_API_KEY,
-  model: process.env.GEMINI_EMBEDDING_MODEL || 'gemini-embedding-001'
+  model: process.env.GEMINI_EMBEDDING_MODEL || 'gemini-embedding-001',
+  outputDimensionality: 3072,
 });
+
+const hasUsefulText = (text) => {
+  const normalized = text?.replace(/\s+/g, ' ').trim() || '';
+  const meaningfulCharacters = (normalized.match(/[A-Za-z0-9]/g) || []).length;
+
+  return meaningfulCharacters >= 80 && normalized.length >= 120;
+};
 
 const processDocument = async ({
   documentId,
@@ -27,29 +35,31 @@ const processDocument = async ({
   let pages = await loader.load();
 
   const extractedText = pages
-    .map((page) => page.pageContent)
-    .join('')
+    .map((page) => page.pageContent || '')
+    .join('\n')
     .trim();
 
-  // Step 2: Use OCR only when normal PDF extraction gives almost no text
-  if (extractedText.length < 50) {
-    const ocrText = await extractWithOCR(filePath);
+  // Step 2: Use OCR when the PDF has no meaningful text layer, which is
+  // common for scanned mark sheets and image-only documents.
+  if (!hasUsefulText(extractedText)) {
+    const ocrPages = await extractWithOCR(filePath, pages.length);
 
-    if (!ocrText.trim()) {
+    if (!ocrPages.length) {
       throw new Error('Unable to extract text from document');
     }
 
-    pages = [
-      new LangchainDocument({
-        pageContent: ocrText,
-        metadata: {
-          pageNumber: 1
-        }
-      })
-    ];
+    pages = ocrPages.map(
+      (pageContent, index) =>
+        new LangchainDocument({
+          pageContent,
+          metadata: {
+            pageNumber: index + 1
+          }
+        })
+    );
   }
 
-  const preparedDocuments = [];
+  const preparedDocuments = []; // array of pagaes with metadata for each page
 
   // Step 3: Attach document metadata needed for filtering and citations
   pages.forEach((page, index) => {
@@ -74,8 +84,8 @@ const processDocument = async ({
         })
       );
 
-      // Preserve table-like data as separate searchable chunks
-      const tables = extractTables(text);
+      // Preserve table-like data as separate searchable chunks 
+      const tables = extractTables(text);  // extract tables from the current page(if any)
 
       tables.forEach((table) => {
         preparedDocuments.push(
@@ -112,7 +122,8 @@ const processDocument = async ({
     finalChunks,
     embeddings,
     {
-      pineconeIndex
+      pineconeIndex,
+      maxConcurrency: 3
     }
   );
 
@@ -122,32 +133,6 @@ const processDocument = async ({
   };
 };
 
-const deleteDocumentVectors = async (documentId, userId) => {
-  // Delete only vectors belonging to this user's document
-  await pineconeIndex.deleteMany({
-    filter: {
-      documentId: {
-        $eq: documentId.toString()
-      },
-      userId: {
-        $eq: userId.toString()
-      }
-    }
-  });
-};
-
-const reindexDocument = async (data) => {
-  // Remove old vectors before creating fresh embeddings
-  await deleteDocumentVectors(
-    data.documentId,
-    data.userId
-  );
-
-  return processDocument(data);
-};
-
 export {
-  processDocument,
-  deleteDocumentVectors,
-  reindexDocument
+  processDocument
 };

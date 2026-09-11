@@ -1,7 +1,8 @@
-import { useState } from 'react';
+import { useEffect, useState } from 'react';
 import { useNavigate } from 'react-router-dom';
 import { Menu } from 'lucide-react';
 
+import api from '../api/api.js';
 import Sidebar from '../components/Sidebar.jsx';
 import ChatBox from '../components/ChatBox.jsx';
 import LogoutConfirmation from '../components/LogoutConfirmation.jsx';
@@ -10,91 +11,126 @@ import ThemeToggle from '../components/ThemeToggle.jsx';
 function Home() {
   const navigate = useNavigate();
 
+  const normalizeDocument = (document) => ({
+    ...document,
+    id: document._id,
+    size:
+      document.size < 1024 * 1024
+        ? `${(document.size / 1024).toFixed(1)} KB`
+        : `${(document.size / (1024 * 1024)).toFixed(1)} MB`
+  });
+
   const [isSidebarOpen, setIsSidebarOpen] = useState(false);
   const [showLogoutModal, setShowLogoutModal] = useState(false);
   const [selectedDocumentIds, setSelectedDocumentIds] = useState([]);
-  const [activeChatId, setActiveChatId] = useState('1');
+  const [activeChatId, setActiveChatId] = useState(null);
+  const [documents, setDocuments] = useState([]);
+  const [chats, setChats] = useState([]);
+  const [messages, setMessages] = useState([]);
 
-  const [documents, setDocuments] = useState([
-    {
-      id: '1',
-      name: 'Operating Systems.pdf',
-      pages: 124,
-      size: '4.2 MB'
-    },
-    {
-      id: '2',
-      name: 'Database Management.pdf',
-      pages: 98,
-      size: '3.1 MB'
-    }
-  ]);
+  const currentChatTitle =
+    chats.find((chat) => chat.id === activeChatId)?.title ||
+    'New Chat';
 
-  const [chats, setChats] = useState([
-    {
-      id: '1',
-      title: 'Understanding Deadlocks'
-    },
-    {
-      id: '2',
-      title: 'Database Indexing'
-    }
-  ]);
+  useEffect(() => {
+    const loadData = async () => {
+      if (!localStorage.getItem('token')) {
+        navigate('/login');
+        return;
+      }
 
-  const [messages, setMessages] = useState([
-    {
-      id: '1',
-      role: 'assistant',
-      content:
-        'Hi! Select or upload your documents and ask me anything about them.',
-      sources: []
-    }
-  ]);
+      try {
+        const chatsResponse = await api.get('/chat');
 
-  const handleNewChat = () => {
-    const newChat = {
-      id: Date.now().toString(),
-      title: 'New Chat'
+        setDocuments([]);
+        setSelectedDocumentIds([]);
+        setChats(
+          chatsResponse.data.map((chat) => ({
+            ...chat,
+            id: chat._id
+          }))
+        );
+      } catch (error) {
+        if (error.response?.status === 401) {
+          navigate('/login');
+        }
+      }
     };
 
-    setChats((prev) => [newChat, ...prev]);
-    setActiveChatId(newChat.id);
+    loadData();
+  }, [navigate]);
 
-    setMessages([
-      {
-        id: Date.now().toString(),
-        role: 'assistant',
-        content:
-          'New conversation started. Select your documents and ask a question.',
-        sources: []
-      }
-    ]);
+  const handleNewChat = () => {
+    setActiveChatId(null);
+    setSelectedDocumentIds([]);
+    setDocuments([]);
+    setMessages([]);
 
     setIsSidebarOpen(false);
   };
 
-  const handleSelectDocument = (documentId) => {
-    setSelectedDocumentIds((prev) =>
-      prev.includes(documentId)
-        ? prev.filter((id) => id !== documentId)
-        : [...prev, documentId]
-    );
-  };
+  const handleDocumentUploaded = (documentIds, chatId, chat) => {
+    setSelectedDocumentIds(documentIds);
 
-  const handleSelectAllDocuments = () => {
-    if (selectedDocumentIds.length === documents.length) {
-      setSelectedDocumentIds([]);
-      return;
+    if (chatId) {
+      setActiveChatId(chatId);
     }
 
-    setSelectedDocumentIds(
-      documents.map((document) => document.id)
-    );
+    if (chat) {
+      setChats((prev) =>
+        prev.some((item) => item.id === chat.id)
+          ? prev
+          : [{ ...chat }, ...prev]
+      );
+    }
   };
 
-  const handleSelectChat = (chatId) => {
+  const handleChatDeleted = (chatId) => {
+    if (activeChatId === chatId) {
+      setActiveChatId(null);
+      setSelectedDocumentIds([]);
+      setDocuments([]);
+      setMessages([]);
+    }
+  };
+
+  const handleSelectChat = async (chatId) => {
     setActiveChatId(chatId);
+    setSelectedDocumentIds([]);
+    setDocuments([]);
+    setMessages([]);
     setIsSidebarOpen(false);
+
+    try {
+      const response = await api.get(`/chat/${chatId}`);
+      setMessages(
+        response.data.messages.map((message, index) => ({
+          ...message,
+          id: message._id || `${chatId}-${index}`
+        }))
+      );
+
+      try {
+        const documentsResponse = await api.get(
+          `/documents?chatId=${chatId}`
+        );
+        setDocuments(
+          documentsResponse.data.map(normalizeDocument)
+        );
+        setSelectedDocumentIds(
+          documentsResponse.data.map((document) => document._id)
+        );
+      } catch (documentError) {
+        setDocuments([]);
+        setSelectedDocumentIds(
+          response.data.documentIds?.map((document) =>
+            document._id || document
+          ) || []
+        );
+      }
+    } catch (error) {
+      setMessages([]);
+    }
   };
 
   const handleLogoutClick = () => {
@@ -116,17 +152,13 @@ function Home() {
       <Sidebar
         isOpen={isSidebarOpen}
         onClose={() => setIsSidebarOpen(false)}
-        documents={documents}
-        setDocuments={setDocuments}
-        selectedDocumentIds={selectedDocumentIds}
-        onSelectDocument={handleSelectDocument}
-        onSelectAllDocuments={handleSelectAllDocuments}
         chats={chats}
         setChats={setChats}
         activeChatId={activeChatId}
         onSelectChat={handleSelectChat}
         onNewChat={handleNewChat}
         onLogout={handleLogoutClick}
+        onChatDeleted={handleChatDeleted}
       />
 
       {isSidebarOpen && (
@@ -154,7 +186,7 @@ function Home() {
 
             <div className="min-w-0">
               <p className="truncate text-sm font-bold text-slate-900 dark:text-white sm:text-base">
-                DocuMind
+                QueryNest
               </p>
 
               <p className="hidden truncate text-xs text-slate-500 dark:text-slate-400 sm:block">
@@ -171,7 +203,12 @@ function Home() {
           setMessages={setMessages}
           selectedDocumentIds={selectedDocumentIds}
           documents={documents}
+          chatTitle={currentChatTitle}
           activeChatId={activeChatId}
+          setActiveChatId={setActiveChatId}
+          setChats={setChats}
+          setDocuments={setDocuments}
+          onDocumentUploaded={handleDocumentUploaded}
         />
 
       </main>

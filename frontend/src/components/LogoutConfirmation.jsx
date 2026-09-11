@@ -6,7 +6,7 @@ function LogoutConfirmation({ isOpen, onClose, onConfirm }) {
   }
 
   return (
-    <div className="fixed inset-0 z-[100] flex items-center justify-center bg-slate-950/40 px-4 backdrop-blur-sm">
+    <div className="fixed inset-0 z-100 flex items-center justify-center bg-slate-950/40 px-4 backdrop-blur-sm">
       <div className="w-full max-w-sm rounded-2xl border border-slate-200 bg-white p-6 shadow-2xl">
         <div className="flex items-start justify-between">
           <div className="flex h-11 w-11 items-center justify-center rounded-xl bg-red-50 text-red-500">
@@ -29,7 +29,7 @@ function LogoutConfirmation({ isOpen, onClose, onConfirm }) {
           </h2>
 
           <p className="mt-2 text-sm leading-6 text-slate-500">
-            Are you sure you want to log out of your DocuMind account?
+            Are you sure you want to log out of your QueryNest account?
           </p>
         </div>
 

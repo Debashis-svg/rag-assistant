@@ -1,7 +1,14 @@
 import { useRef, useState } from 'react';
 import { FileUp, Loader2, Upload } from 'lucide-react';
+import api from '../api/api.js';
 
-function UploadDocument({ documents, setDocuments }) {
+function UploadDocument({
+  chatId,
+  hasDocument = false,
+  setDocuments,
+  onUploaded,
+  compact = false
+}) {
   const inputRef = useRef(null);
 
   const [isUploading, setIsUploading] = useState(false);
@@ -20,17 +27,13 @@ function UploadDocument({ documents, setDocuments }) {
   };
 
   const handleFiles = async (files) => {
-    const selectedFiles = Array.from(files);
+    const file = files[0];
 
-    if (selectedFiles.length === 0) {
+    if (!file) {
       return;
     }
 
-    const invalidFile = selectedFiles.find(
-      (file) => file.type !== 'application/pdf'
-    );
-
-    if (invalidFile) {
+    if (file.type !== 'application/pdf') {
       setError('Currently only PDF files are supported.');
       return;
     }
@@ -39,62 +42,39 @@ function UploadDocument({ documents, setDocuments }) {
     setIsUploading(true);
 
     try {
-      /*
-      Backend integration later:
-
       const formData = new FormData();
 
-      selectedFiles.forEach((file) => {
-        formData.append('documents', file);
+      formData.append('document', file);
+
+      if (chatId) {
+        formData.append('chatId', chatId);
+      }
+
+      const response = await api.post('/documents/upload', formData, {
+        timeout: 120000,
+        headers: {
+          'Content-Type': 'multipart/form-data'
+        }
       });
 
-      const response = await api.post(
-        '/documents/upload',
-        formData,
+      const document = response.data.document;
+
+      setDocuments([
         {
-          headers: {
-            'Content-Type': 'multipart/form-data'
-          }
+          ...document,
+          id: document._id,
+          size: formatFileSize(document.size)
         }
+      ]);
+      onUploaded(
+        [document._id],
+        response.data.chatId,
+        response.data.chat
       );
-
-      setDocuments((prev) => [
-        ...response.data.documents,
-        ...prev
-      ]);
-      */
-
-      const newDocuments = selectedFiles.map((file) => ({
-        id: `${Date.now()}-${Math.random()}`,
-        name: file.name,
-        size: formatFileSize(file.size),
-        pages: '-',
-        status: 'processing'
-      }));
-
-      setDocuments((prev) => [
-        ...newDocuments,
-        ...prev
-      ]);
-
-      setTimeout(() => {
-        setDocuments((prev) =>
-          prev.map((document) =>
-            newDocuments.some(
-              (newDocument) => newDocument.id === document.id
-            )
-              ? {
-                  ...document,
-                  status: 'ready'
-                }
-              : document
-          )
-        );
-      }, 1200);
     } catch (err) {
       setError(
         err.response?.data?.message ||
-          'Unable to upload documents.'
+          'Unable to upload document.'
       );
     } finally {
       setIsUploading(false);
@@ -109,13 +89,54 @@ function UploadDocument({ documents, setDocuments }) {
     handleFiles(e.target.files);
   };
 
+  if (compact) {
+    return (
+      <div className="group relative flex items-center">
+        <input
+          ref={inputRef}
+          type="file"
+          accept=".pdf,application/pdf"
+          onChange={handleChange}
+          className="hidden"
+        />
+
+        <button
+          type="button"
+          onClick={() => inputRef.current?.click()}
+          disabled={isUploading || hasDocument}
+          className="flex h-9 w-9 items-center justify-center rounded-xl border border-slate-200 bg-slate-50 text-slate-600 shadow-sm transition hover:border-slate-300 hover:bg-white hover:text-slate-900 focus:outline-none focus:ring-2 focus:ring-slate-900/10 disabled:cursor-not-allowed disabled:opacity-60"
+          aria-label="Upload document"
+          title="Attach a PDF document"
+          aria-disabled={hasDocument}
+        >
+          {isUploading ? (
+            <Loader2 size={17} className="animate-spin" />
+          ) : (
+            <FileUp size={17} />
+          )}
+        </button>
+
+        {hasDocument && (
+          <span className="pointer-events-none absolute bottom-11 left-0 z-20 w-64 rounded-md border border-slate-600 bg-slate-800 px-3 py-2 text-left text-xs font-medium leading-5 text-white opacity-0 shadow-xl transition-opacity duration-100 group-hover:opacity-100">
+            You already uploaded a file. Start a new chat to upload a new file.
+          </span>
+        )}
+
+        {error && (
+          <p className="absolute left-0 top-10 z-10 whitespace-nowrap text-xs text-red-500">
+            {error}
+          </p>
+        )}
+      </div>
+    );
+  }
+
   return (
     <div className="mb-4">
       <input
         ref={inputRef}
         type="file"
         accept=".pdf,application/pdf"
-        multiple
         onChange={handleChange}
         className="hidden"
       />
@@ -141,11 +162,11 @@ function UploadDocument({ documents, setDocuments }) {
           <p className="text-sm font-semibold text-slate-700">
             {isUploading
               ? 'Uploading...'
-              : 'Upload documents'}
+              : 'Upload document'}
           </p>
 
           <p className="mt-0.5 text-xs text-slate-400">
-            Select one or multiple PDFs
+            Select one PDF
           </p>
         </div>
 
@@ -163,15 +184,6 @@ function UploadDocument({ documents, setDocuments }) {
         </p>
       )}
 
-      {documents.length > 0 && (
-        <p className="mt-2 text-[11px] text-slate-400">
-          {documents.length}{' '}
-          {documents.length === 1
-            ? 'document'
-            : 'documents'}{' '}
-          available
-        </p>
-      )}
     </div>
   );
 }

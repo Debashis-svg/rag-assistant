@@ -8,6 +8,12 @@ const documentSchema = new mongoose.Schema(
       required: true
     },
 
+    chatId: {
+      type: mongoose.Schema.Types.ObjectId,
+      ref: 'Chat',
+      required: true
+    },
+
     name: {
       type: String,
       required: true,

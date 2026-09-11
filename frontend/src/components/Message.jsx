@@ -4,7 +4,6 @@ import ReactMarkdown from 'react-markdown';
 import remarkGfm from 'remark-gfm';
 
 import SourceCard from './SourceCard.jsx';
-import FeedbackButtons from './FeedbackButtons.jsx';
 
 function Message({ message, onSuggestionClick }) {
   const [copied, setCopied] = useState(false);
@@ -32,7 +31,7 @@ function Message({ message, onSuggestionClick }) {
             {message.content}
           </div>
 
-          <div className="flex h-9 w-9 shrink-0 items-center justify-center rounded-xl bg-slate-200 text-slate-700">
+          <div className="chat-user-avatar flex h-9 w-9 shrink-0 items-center justify-center rounded-full">
             <User size={17} />
           </div>
         </div>
@@ -42,7 +41,7 @@ function Message({ message, onSuggestionClick }) {
 
   return (
     <div className="flex items-start gap-3">
-      <div className="flex h-9 w-9 shrink-0 items-center justify-center rounded-xl border border-black bg-slate-900 text-white dark:border-white">
+      <div className="chat-bot-avatar flex h-9 w-9 shrink-0 items-center justify-center rounded-full border border-slate-900 dark:border-slate-200">
         <Bot size={18} />
       </div>
 
@@ -72,25 +71,21 @@ function Message({ message, onSuggestionClick }) {
         </div>
 
         {message.sources?.length > 0 && (
-          <div className="mt-4">
-            <p className="mb-2 text-xs font-semibold uppercase tracking-wider text-slate-400">
+          <div className="mt-3">
+            <p className="mb-1.5 text-[11px] font-semibold uppercase tracking-wider text-slate-400">
               Sources
             </p>
 
-            <div className="grid gap-2 sm:grid-cols-2">
-              {message.sources.map((source) => (
+            <div className="grid gap-1.5 sm:grid-cols-2">
+              {message.sources.map((source, index) => (
                 <SourceCard
-                  key={source.id}
+                  key={`${source.documentId || source.fileName || 'source'}-${source.pageNumber || 'page'}-${index}`}
                   source={source}
                 />
               ))}
             </div>
           </div>
         )}
-
-        <div className="mt-3 flex items-center gap-2">
-          <FeedbackButtons messageId={message.id} />
-        </div>
 
         {message.suggestions?.length > 0 && (
           <div className="mt-5">

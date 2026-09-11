@@ -1,6 +1,8 @@
 import { useState } from 'react';
 import { Link, useNavigate } from 'react-router-dom';
-import { Brain, Eye, EyeOff, LogIn } from 'lucide-react';
+import { Eye, EyeOff, LogIn } from 'lucide-react';
+import api from '../api/api.js';
+import BrandMark from '../components/BrandMark.jsx';
 
 function Login() {
   const navigate = useNavigate();
@@ -35,9 +37,6 @@ function Login() {
     setError('');
 
     try {
-      /*
-      Later:
-
       const response = await api.post('/auth/login', formData);
 
       localStorage.setItem('token', response.data.token);
@@ -45,7 +44,6 @@ function Login() {
         'user',
         JSON.stringify(response.data.user)
       );
-      */
 
       navigate('/');
     } catch (err) {
@@ -63,12 +61,12 @@ function Login() {
       <div className="mx-auto flex min-h-[calc(100vh-4rem)] max-w-md flex-col justify-center">
 
         <div className="mb-8 flex items-center justify-center gap-3">
-          <div className="flex h-11 w-11 items-center justify-center rounded-2xl bg-slate-900 text-white shadow-sm">
-            <Brain size={24} />
+          <div className="flex h-11 w-11 items-center justify-center rounded-full bg-slate-900 text-white shadow-sm">
+            <BrandMark />
           </div>
 
           <span className="text-2xl font-bold tracking-tight text-slate-900">
-            DocuMind
+            QueryNest
           </span>
         </div>
 

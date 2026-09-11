@@ -8,22 +8,27 @@ import {
 } from 'lucide-react';
 
 import Message from './Message.jsx';
+import api from '../api/api.js';
+import UploadDocument from './UploadDocument.jsx';
 
 function ChatBox({
   messages,
   setMessages,
   selectedDocumentIds,
   documents,
-  activeChatId
+  chatTitle,
+  activeChatId,
+  setActiveChatId,
+  setChats,
+  setDocuments,
+  onDocumentUploaded
 }) {
   const [question, setQuestion] = useState('');
   const [isGenerating, setIsGenerating] = useState(false);
+  const [hasReceivedAnswer, setHasReceivedAnswer] = useState(false);
 
   const selectedDocuments = useMemo(
-    () =>
-      documents.filter((document) =>
-        selectedDocumentIds.includes(document.id)
-      ),
+    () => documents.filter((document) => selectedDocumentIds.includes(document.id)),
     [documents, selectedDocumentIds]
   );
 
@@ -46,80 +51,238 @@ function ChatBox({
     setMessages((prev) => [...prev, userMessage]);
     setQuestion('');
     setIsGenerating(true);
+    setHasReceivedAnswer(false);
+    const assistantId = `${Date.now()}-assistant`;
+    const pendingChatId = `pending-${assistantId}`;
+    let persistedChatId = null;
+
+    setChats((prev) => {
+      if (activeChatId) {
+        return messages.length === 0
+          ? prev.map((chat) =>
+              chat.id === activeChatId
+                ? { ...chat, title: trimmedQuestion.slice(0, 50) }
+                : chat
+            )
+          : prev;
+      }
+
+      return [
+        {
+          id: pendingChatId,
+          title: trimmedQuestion.slice(0, 50),
+          pending: true
+        },
+        ...prev
+      ];
+    });
 
     try {
-      /*
-      Later backend integration:
+      const response = await fetch(`${api.defaults.baseURL}/chat`, {
+        method: 'POST',
+        headers: {
+          'Content-Type': 'application/json',
+          Authorization: `Bearer ${localStorage.getItem('token')}`
+        },
+        body: JSON.stringify({
+          question: trimmedQuestion,
+          documentIds: selectedDocumentIds,
+          chatId: activeChatId
+        })
+      });
 
-      const response = await fetch(
-        'http://localhost:5000/api/chat',
-        {
-          method: 'POST',
-          headers: {
-            'Content-Type': 'application/json',
-            Authorization: `Bearer ${localStorage.getItem('token')}`
-          },
-          body: JSON.stringify({
-            question: trimmedQuestion,
-            documentIds: selectedDocumentIds,
-            chatId: activeChatId
-          })
+      if (!response.ok || !response.body) {
+        if (!response.ok) {
+          const errorData = await response.json().catch(() => ({}));
+
+          if (errorData.chatId) {
+            persistedChatId = errorData.chatId;
+            setActiveChatId(errorData.chatId);
+            setChats((prev) => {
+              const chat = {
+                id: errorData.chatId,
+                title:
+                  errorData.title || trimmedQuestion.slice(0, 50)
+              };
+              const withoutPending = prev.filter(
+                (item) => item.id !== pendingChatId
+              );
+
+              return withoutPending.some(
+                (item) => item.id === chat.id
+              )
+                ? withoutPending.map((item) =>
+                    item.id === chat.id ? { ...item, ...chat } : item
+                  )
+                : [chat, ...withoutPending];
+            });
+          }
         }
-      );
 
-      Streaming response logic will be added later.
-      */
+        throw new Error('Unable to generate response');
+      }
 
-      const assistantMessage = {
-        id: `${Date.now()}-assistant`,
-        role: 'assistant',
-        content:
-          selectedDocumentIds.length === 0
-            ? 'Please select at least one document so I can answer using your uploaded knowledge base.'
-            : `This is a temporary frontend response for: "${trimmedQuestion}". The real answer will come from the RAG backend once we connect Gemini and Pinecone.`,
-        sources:
-          selectedDocuments.length > 0
-            ? [
+      const reader = response.body.getReader();
+      const decoder = new TextDecoder();
+      let buffer = '';
+      let streamedContent = '';
+      let animationFrameId = null;
+
+      const updateAssistant = (changes) => {
+        setMessages((prev) =>
+          prev.some((message) => message.id === assistantId)
+            ? prev.map((message) =>
+                message.id === assistantId
+                  ? { ...message, ...changes }
+                  : message
+              )
+            : [
+                ...prev,
                 {
-                  id: 'source-1',
-                  fileName: selectedDocuments[0].name,
-                  pageNumber: 12,
-                  text:
-                    'This is sample source text. Later this will contain the actual retrieved chunk from Pinecone.'
+                  id: assistantId,
+                  role: 'assistant',
+                  content: '',
+                  sources: [],
+                  suggestions: [],
+                  ...changes
                 }
               ]
-            : [],
-        suggestions:
-          selectedDocumentIds.length > 0
-            ? [
-                'Explain this in simpler words',
-                'Give me the key points',
-                'What should I study next?'
-              ]
-            : []
+        );
       };
 
-      setTimeout(() => {
-        setMessages((prev) => [
-          ...prev,
-          assistantMessage
-        ]);
+      const flushStreamedContent = () => {
+        animationFrameId = null;
+        updateAssistant({ content: streamedContent });
+      };
 
-        setIsGenerating(false);
-      }, 700);
-    } catch (err) {
-      setMessages((prev) => [
-        ...prev,
-        {
-          id: `${Date.now()}-error`,
-          role: 'assistant',
-          content:
-            'Something went wrong while generating the response.',
-          sources: []
+      const scheduleStreamedContent = () => {
+        if (animationFrameId === null) {
+          animationFrameId = requestAnimationFrame(
+            flushStreamedContent
+          );
         }
-      ]);
+      };
+
+      while (true) {
+        const { value, done } = await reader.read();
+        buffer += decoder.decode(value || new Uint8Array(), {
+          stream: !done
+        });
+
+        const events = buffer.split('\n\n');
+        buffer = events.pop() || '';
+
+        events.forEach((event) => {
+          const line = event
+            .split('\n')
+            .find((item) => item.startsWith('data: '));
+
+          if (!line) {
+            return;
+          }
+
+          const data = JSON.parse(line.slice(6));
+
+          if (data.type === 'start') {
+            persistedChatId = data.chatId;
+            setActiveChatId(data.chatId);
+            setChats((prev) => {
+              const chat = {
+                id: data.chatId,
+                title: data.title || trimmedQuestion.slice(0, 50)
+              };
+
+              const withoutPending = prev.filter(
+                (item) => item.id !== pendingChatId
+              );
+
+              return withoutPending.some(
+                (item) => item.id === data.chatId
+              )
+                ? withoutPending.map((item) =>
+                    item.id === data.chatId
+                      ? { ...item, title: chat.title }
+                      : item
+                  )
+                : [chat, ...withoutPending];
+            }
+            );
+          }
+
+          if (data.type === 'token') {
+            streamedContent += data.content;
+            setHasReceivedAnswer(true);
+            scheduleStreamedContent();
+          }
+
+          if (data.type === 'done') {
+            setHasReceivedAnswer(true);
+            updateAssistant({
+              content:
+                streamedContent ||
+                'I could not generate a response. Please try again.',
+              sources: data.sources || [],
+              suggestions: data.suggestions || []
+            });
+          }
+
+          if (data.type === 'error') {
+            throw new Error(data.message);
+          }
+        });
+
+        if (done) {
+          break;
+        }
+      }
+
+      if (animationFrameId !== null) {
+        cancelAnimationFrame(animationFrameId);
+        flushStreamedContent();
+      }
 
       setIsGenerating(false);
+      setHasReceivedAnswer(false);
+    } catch (err) {
+      if (!persistedChatId) {
+        setChats((prev) =>
+          prev.filter((chat) => chat.id !== pendingChatId)
+        );
+      }
+
+      setMessages((prev) => {
+        const hasAssistantMessage = prev.some(
+          (message) => message.id === assistantId
+        );
+
+        if (hasAssistantMessage) {
+          return prev.map((message) =>
+            message.id === assistantId
+              ? {
+                  ...message,
+                  content:
+                    'Something went wrong while generating the response.',
+                  sources: [],
+                  suggestions: []
+                }
+              : message
+          );
+        }
+
+        return [
+          ...prev,
+          {
+            id: assistantId,
+            role: 'assistant',
+            content:
+              'Something went wrong while generating the response.',
+            sources: []
+          }
+        ];
+      });
+
+      setIsGenerating(false);
+      setHasReceivedAnswer(false);
     }
   };
 
@@ -133,17 +296,13 @@ function ChatBox({
         <div className="mx-auto flex max-w-5xl items-center justify-between gap-4">
           <div className="min-w-0">
             <h2 className="truncate text-sm font-semibold text-slate-900 sm:text-base">
-              Document Chat
+              {chatTitle}
             </h2>
 
             <p className="mt-0.5 truncate text-xs text-slate-500">
-              {selectedDocuments.length === 0
-                ? 'Select documents to begin'
-                : `${selectedDocuments.length} ${
-                    selectedDocuments.length === 1
-                      ? 'document'
-                      : 'documents'
-                  } selected`}
+              {selectedDocuments.length > 0
+                ? '1 document selected'
+                : 'Upload a document to begin'}
             </p>
           </div>
 
@@ -159,7 +318,7 @@ function ChatBox({
           {messages.length === 0 ? (
             <div className="flex flex-1 items-center justify-center">
               <div className="max-w-lg text-center">
-                <div className="mx-auto flex h-14 w-14 items-center justify-center rounded-2xl border border-black bg-slate-900 text-white shadow-sm dark:border-white">
+                <div className="chat-bot-avatar mx-auto flex h-14 w-14 items-center justify-center rounded-full border border-slate-900 shadow-sm dark:border-slate-200">
                   <Bot size={26} />
                 </div>
 
@@ -168,9 +327,8 @@ function ChatBox({
                 </h2>
 
                 <p className="mt-2 text-sm leading-6 text-slate-500">
-                  Select one or more documents, then ask questions,
-                  generate summaries, extract key points, or compare
-                  information across files.
+                  Upload a document, then ask questions, generate
+                  summaries, or extract key points.
                 </p>
               </div>
             </div>
@@ -184,9 +342,9 @@ function ChatBox({
                 />
               ))}
 
-              {isGenerating && (
+              {isGenerating && !hasReceivedAnswer && (
                 <div className="flex items-start gap-3">
-                  <div className="flex h-9 w-9 shrink-0 items-center justify-center rounded-xl border border-black bg-slate-900 text-white dark:border-white">
+                  <div className="chat-bot-avatar flex h-9 w-9 shrink-0 items-center justify-center rounded-full border border-slate-900 dark:border-slate-200">
                     <Bot size={18} />
                   </div>
 
@@ -210,21 +368,14 @@ function ChatBox({
         <div className="mx-auto max-w-5xl">
           {selectedDocuments.length > 0 && (
             <div className="mb-3 flex gap-2 overflow-x-auto pb-1">
-              {selectedDocuments.map((document) => (
-                <div
-                  key={document.id}
-                  className="flex shrink-0 items-center gap-1.5 rounded-lg border border-slate-200 bg-slate-50 px-2.5 py-1.5 text-xs font-medium text-slate-600"
-                >
-                  <FileText
-                    size={13}
-                    className="text-red-500"
-                  />
-
-                  <span className="max-w-40 truncate">
-                    {document.name}
-                  </span>
-                </div>
-              ))}
+              <div className="flex shrink-0 items-center gap-1.5 rounded-lg border border-slate-200 bg-slate-50 px-2.5 py-1.5 text-xs font-medium text-slate-600">
+                <FileText size={13} className="text-red-500" />
+                <span className="max-w-40 truncate">
+                  {selectedDocuments.length === 1
+                    ? selectedDocuments[0].name
+                    : `${selectedDocuments.length} documents attached`}
+                </span>
+              </div>
             </div>
           )}
 
@@ -246,17 +397,21 @@ function ChatBox({
               }}
               rows={1}
               placeholder={
-                selectedDocumentIds.length === 0
-                  ? 'Select a document and ask a question...'
-                  : 'Ask anything about your selected documents...'
+                selectedDocuments.length > 0
+                  ? 'Ask anything about your documents...'
+                  : 'Upload a document and ask a question...'
               }
               className="max-h-40 min-h-12 w-full resize-none bg-transparent px-3 py-3 text-sm text-slate-900 outline-none placeholder:text-slate-400"
             />
 
             <div className="flex items-center justify-between gap-3 px-2 pb-1">
-              <p className="hidden text-[11px] text-slate-400 sm:block">
-                Enter to send • Shift + Enter for new line
-              </p>
+              <UploadDocument
+                chatId={activeChatId}
+                hasDocument={selectedDocuments.length > 0}
+                setDocuments={setDocuments}
+                onUploaded={onDocumentUploaded}
+                compact
+              />
 
               <div className="ml-auto flex items-center gap-2">
                 <span className="text-[11px] text-slate-400">
@@ -286,7 +441,7 @@ function ChatBox({
           </form>
 
           <p className="mt-2 text-center text-[11px] text-slate-400">
-            Answers are generated from your selected documents.
+            Answers are generated from your document.
             Always verify important information from the cited sources.
           </p>
         </div>

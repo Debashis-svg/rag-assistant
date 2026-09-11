@@ -1,7 +1,7 @@
 import fs from 'fs';
 import gemini from '../config/gemini.js';
 
-const extractWithOCR = async (filePath) => {
+const extractWithOCR = async (filePath, pageCount = 1) => {
   try {
     const fileBuffer = fs.readFileSync(filePath);
     const base64Data = fileBuffer.toString('base64');
@@ -21,13 +21,17 @@ const extractWithOCR = async (filePath) => {
             },
             {
               text: `
-Extract all readable text from this PDF.
+This may be a scanned PDF where the pages contain images instead of an
+embedded text layer. Perform OCR on every page and extract all readable text.
 
 Keep:
 - headings
 - paragraphs
 - lists
-- tables and their structure
+- tables, including every row and column value
+- labels and values shown beside each other
+
+Separate pages with a line containing exactly: --- PAGE BREAK ---
 
 Return only the extracted document content.
 `
@@ -37,10 +41,23 @@ Return only the extracted document content.
       ]
     });
 
-    return response.text || '';
+    const text = response.text?.trim() || '';
+
+    if (!text) {
+      return [];
+    }
+
+    const pageText = text
+      .split(/\n\s*---\s*PAGE BREAK\s*---\s*\n/i)
+      .map((content) => content.trim())
+      .filter(Boolean);
+
+    return pageText.length > 0
+      ? pageText
+      : Array.from({ length: pageCount }, () => text);
   } catch (error) {
     console.error('OCR failed:', error.message);
-    return '';
+    return [];
   }
 };
 
