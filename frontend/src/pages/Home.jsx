@@ -176,7 +176,7 @@ function Home() {
         />
       )}
 
-      <main className="flex min-w-0 flex-1 flex-col">
+      <main className="relative flex min-w-0 flex-1 flex-col">
 
         <header className="flex h-16 shrink-0 items-center justify-between border-b border-slate-200 bg-white px-4 transition-colors duration-300 dark:border-slate-800 dark:bg-black sm:px-6">
 
@@ -218,7 +218,7 @@ function Home() {
         />
 
         {isLoading && (
-          <div className="pointer-events-none absolute inset-0 z-10 flex items-center justify-center bg-white/70 backdrop-blur-[1px] dark:bg-black/70">
+          <div className="pointer-events-none absolute inset-x-0 bottom-0 top-16 z-10 flex items-center justify-center bg-white/70 backdrop-blur-[1px] dark:bg-black/70">
             <div className="flex items-center gap-3 rounded-full border border-slate-200 bg-white px-4 py-3 text-sm font-medium text-slate-600 shadow-lg dark:border-neutral-700 dark:bg-neutral-900 dark:text-slate-300">
               <Loader2 size={18} className="animate-spin" />
               Loading your chats...
