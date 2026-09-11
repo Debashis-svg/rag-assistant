@@ -130,7 +130,7 @@ function Sidebar({
                   key={chat.id}
                   className={`group relative flex items-center rounded-xl transition duration-200 hover:ring-1 hover:ring-cyan-400/40 hover:shadow-[0_0_16px_rgba(34,211,238,0.12)] dark:hover:ring-cyan-300/40 dark:hover:shadow-[0_0_16px_rgba(103,232,249,0.12)] ${
                     activeChatId === chat.id
-                      ? 'bg-slate-100 dark:bg-neutral-900'
+                    ? 'bg-cyan-50 ring-1 ring-cyan-300/70 shadow-[0_0_14px_rgba(34,211,238,0.12)] dark:bg-cyan-950/40 dark:ring-cyan-700/70 dark:shadow-[0_0_14px_rgba(34,211,238,0.12)]'
                       : 'hover:bg-slate-50 dark:hover:bg-neutral-950'
                   }`}
                 >
