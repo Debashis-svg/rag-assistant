@@ -22,7 +22,7 @@ function Home() {
 
   const [isSidebarOpen, setIsSidebarOpen] = useState(false);
   const [showLogoutModal, setShowLogoutModal] = useState(false);
-  const [selectedDocumentIds, setSelectedDocumentIds] = useState([]);
+  const [selectedDocumentId, setSelectedDocumentId] = useState(null);
   const [activeChatId, setActiveChatId] = useState(null);
   const [documents, setDocuments] = useState([]);
   const [chats, setChats] = useState([]);
@@ -44,7 +44,7 @@ function Home() {
         const chatsResponse = await api.get('/chat');
 
         setDocuments([]);
-        setSelectedDocumentIds([]);
+        setSelectedDocumentId(null);
         setChats(
           chatsResponse.data.map((chat) => ({
             ...chat,
@@ -65,15 +65,15 @@ function Home() {
 
   const handleNewChat = () => {
     setActiveChatId(null);
-    setSelectedDocumentIds([]);
+    setSelectedDocumentId(null);
     setDocuments([]);
     setMessages([]);
 
     setIsSidebarOpen(false);
   };
 
-  const handleDocumentUploaded = (documentIds, chatId, chat) => {
-    setSelectedDocumentIds(documentIds);
+  const handleDocumentUploaded = (documentId, chatId, chat) => {
+    setSelectedDocumentId(documentId);
 
     if (chatId) {
       setActiveChatId(chatId);
@@ -91,7 +91,7 @@ function Home() {
   const handleChatDeleted = (chatId) => {
     if (activeChatId === chatId) {
       setActiveChatId(null);
-      setSelectedDocumentIds([]);
+      setSelectedDocumentId(null);
       setDocuments([]);
       setMessages([]);
     }
@@ -100,7 +100,7 @@ function Home() {
   const handleSelectChat = async (chatId) => {
     setIsLoading(true);
     setActiveChatId(chatId);
-    setSelectedDocumentIds([]);
+    setSelectedDocumentId(null);
     setDocuments([]);
     setMessages([]);
     setIsSidebarOpen(false);
@@ -121,16 +121,10 @@ function Home() {
         setDocuments(
           documentsResponse.data.map(normalizeDocument)
         );
-        setSelectedDocumentIds(
-          documentsResponse.data.map((document) => document._id)
-        );
+        setSelectedDocumentId(documentsResponse.data[0]?._id || null);
       } catch (documentError) {
         setDocuments([]);
-        setSelectedDocumentIds(
-          response.data.documentIds?.map((document) =>
-            document._id || document
-          ) || []
-        );
+        setSelectedDocumentId(response.data.documentId || null);
       }
     } catch (error) {
       setMessages([]);
@@ -207,7 +201,7 @@ function Home() {
         <ChatBox
           messages={messages}
           setMessages={setMessages}
-          selectedDocumentIds={selectedDocumentIds}
+          selectedDocumentId={selectedDocumentId}
           documents={documents}
           chatTitle={currentChatTitle}
           activeChatId={activeChatId}

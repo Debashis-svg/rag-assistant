@@ -14,7 +14,7 @@ import UploadDocument from './UploadDocument.jsx';
 function ChatBox({
   messages,
   setMessages,
-  selectedDocumentIds,
+  selectedDocumentId,
   documents,
   chatTitle,
   activeChatId,
@@ -27,9 +27,9 @@ function ChatBox({
   const [isGenerating, setIsGenerating] = useState(false);
   const [hasReceivedAnswer, setHasReceivedAnswer] = useState(false);
 
-  const selectedDocuments = useMemo(
-    () => documents.filter((document) => selectedDocumentIds.includes(document.id)),
-    [documents, selectedDocumentIds]
+  const selectedDocument = useMemo(
+    () => documents.find((document) => document.id === selectedDocumentId),
+    [documents, selectedDocumentId]
   );
 
   const handleSubmit = async (e) => {
@@ -86,7 +86,7 @@ function ChatBox({
         },
         body: JSON.stringify({
           question: trimmedQuestion,
-          documentIds: selectedDocumentIds,
+          documentId: selectedDocumentId,
           chatId: activeChatId
         })
       });
@@ -300,7 +300,7 @@ function ChatBox({
             </h2>
 
             <p className="mt-0.5 truncate text-xs text-slate-500">
-              {selectedDocuments.length > 0
+              {selectedDocument
                 ? '1 document selected'
                 : 'Upload a document to begin'}
             </p>

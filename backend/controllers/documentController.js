@@ -49,7 +49,7 @@ const uploadDocument = async (req, res) => {
         });
       }
 
-      if ((chat.documentIds || []).length > 0) {
+      if (chat.documentId) {
         return res.status(409).json({
           message: 'This chat already has a document. Start a new chat to upload another file.'
         });
@@ -59,7 +59,6 @@ const uploadDocument = async (req, res) => {
       chat = await Chat.create({
         userId: req.userId,
         title: req.file.originalname.slice(0, 50),
-        documentIds: [],
         messages: []
       });
     }
@@ -108,7 +107,7 @@ const uploadDocument = async (req, res) => {
     // longer needed after processing and should not consume disk space.
     await removeTemporaryFile(file.path);
 
-    chat.documentIds = [document._id];
+    chat.documentId = document._id;
     await chat.save();
 
     return res.status(201).json({

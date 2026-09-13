@@ -44,7 +44,7 @@ Return only the rewritten query.
 
 const semanticSearch = async ( // Take the user's question → convert it into a vector → search Pinecone for semantically similar document chunks → restrict results to documents belonging to that user.
     query,
-    documentIds,
+    documentId,
     userId
 ) => {
     const vector = await embeddings.embedQuery(query);
@@ -56,9 +56,9 @@ const semanticSearch = async ( // Take the user's question → convert it into a
     };
 
     // Restrict retrieval to documents selected by the user
-    if (documentIds?.length) {
+    if (documentId) {
         filter.documentId = {
-            $in: documentIds.map((id) => id.toString())
+            $eq: documentId.toString()
         };
     }
 
@@ -100,6 +100,7 @@ const keywordBoost = (results, query) => {
 
             // Combine semantic similarity with simple keyword relevance
             const finalScore =
+                // item.score comes from your vector similarity search.
                 (item.score || 0) * 0.8 +
                 keywordScore * 0.2;
 
@@ -116,6 +117,7 @@ const rerankResults = async (query, results) => {
         return results;
     }
 
+    // Only consider the top 10 results from my initial search for further re-ranking.
     const candidates = results
         .slice(0, 10)
         .map(
@@ -165,7 +167,7 @@ Example:
 const prepareRagContext = async ({
     question,
     history = [],
-    documentIds = [],
+    documentId,
     userId
 }) => {
     // Step 1: Rewrite conversational follow-up into standalone query
@@ -182,7 +184,7 @@ const prepareRagContext = async ({
     // Step 2: Retrieve a wider candidate set from Pinecone
     const semanticResults = await semanticSearch(
         retrievalQuery,
-        documentIds,
+        documentId,
         userId
     );
 

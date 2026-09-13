@@ -15,11 +15,7 @@ const askQuestion = async (req, res) => {
   let chat = null;
 
   try {
-    const {
-      question,
-      documentIds = [],
-      chatId
-    } = req.body;
+    const { question, documentId, chatId } = req.body;
 
     if (!question || !question.trim()) {
       return res.status(400).json({
@@ -39,13 +35,14 @@ const askQuestion = async (req, res) => {
       chat = await Chat.create({
         userId: req.userId,
         title: question.trim().slice(0, 50),
-        documentIds,
+        documentId,
         messages: []
       });
     }
 
-    const chatDocumentIds = chat.documentIds || [];
+    const chatDocumentId = chat.documentId;
 
+    // if it is a new question
     if (chat.messages.length === 0) {
       chat.title = question.trim().slice(0, 50);
     }
@@ -59,6 +56,7 @@ const askQuestion = async (req, res) => {
     // cannot leave an empty "New Chat" record in the database.
     await chat.save();
 
+    // array of objects
     const history = chat.messages.map((message) => ({
       role: message.role,
       content: message.content
@@ -72,7 +70,7 @@ const askQuestion = async (req, res) => {
       : await prepareRagContext({
           question: question.trim(),
           history: history.slice(0, -1),
-          documentIds: chatDocumentIds,
+          documentId: chatDocumentId,
           userId: req.userId
         });
 
@@ -258,9 +256,9 @@ const getChats = async (req, res) => {
     const chats = await Chat.find({
       userId: req.userId
     })
-      .select('title documentIds messages createdAt updatedAt')
+      .select('title documentId messages createdAt updatedAt')
       .sort({
-        updatedAt: -1
+        updatedAt: -1  // Sort the chats by updatedAt, with the most recently updated chat first
       });
 
     const normalizedChats = await Promise.all(
@@ -280,7 +278,7 @@ const getChats = async (req, res) => {
         return {
           _id: chat._id,
           title: chat.title,
-          documentIds: chat.documentIds,
+          documentId: chat.documentId,
           createdAt: chat.createdAt,
           updatedAt: chat.updatedAt
         };

@@ -67,7 +67,7 @@ function UploadDocument({
         }
       ]);
       onUploaded(
-        [document._id],
+        document._id,
         response.data.chatId,
         response.data.chat
       );

@@ -33,7 +33,8 @@ const processDocument = async ({
   });
 
   let pages = await loader.load();
-
+ 
+  // extractedText will hold one big string containing the text from all PDF pages, with \n (newline) inserted between each page's text.
   const extractedText = pages
     .map((page) => page.pageContent || '')
     .join('\n')
@@ -50,6 +51,7 @@ const processDocument = async ({
 
     pages = ocrPages.map(
       (pageContent, index) =>
+        // creating a LangChain Document object from some extracted text
         new LangchainDocument({
           pageContent,
           metadata: {
