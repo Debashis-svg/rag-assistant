@@ -366,14 +366,12 @@ function ChatBox({
 
       <div className="shrink-0 border-t border-slate-200 bg-white px-4 py-4 sm:px-6">
         <div className="mx-auto max-w-5xl">
-          {selectedDocuments.length > 0 && (
+          {selectedDocument && (
             <div className="mb-3 flex gap-2 overflow-x-auto pb-1">
               <div className="flex shrink-0 items-center gap-1.5 rounded-lg border border-slate-200 bg-slate-50 px-2.5 py-1.5 text-xs font-medium text-slate-600">
                 <FileText size={13} className="text-red-500" />
                 <span className="max-w-40 truncate">
-                  {selectedDocuments.length === 1
-                    ? selectedDocuments[0].name
-                    : `${selectedDocuments.length} documents attached`}
+                  {selectedDocument.name}
                 </span>
               </div>
             </div>
@@ -397,7 +395,7 @@ function ChatBox({
               }}
               rows={1}
               placeholder={
-                selectedDocuments.length > 0
+                selectedDocument
                   ? 'Ask anything about your documents...'
                   : 'Upload a document and ask a question...'
               }
@@ -407,7 +405,7 @@ function ChatBox({
             <div className="flex items-center justify-between gap-3 px-2 pb-1">
               <UploadDocument
                 chatId={activeChatId}
-                hasDocument={selectedDocuments.length > 0}
+                hasDocument={Boolean(selectedDocument)}
                 setDocuments={setDocuments}
                 onUploaded={onDocumentUploaded}
                 compact
