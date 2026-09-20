@@ -21,6 +21,7 @@ function Home() {
   });
 
   const [isSidebarOpen, setIsSidebarOpen] = useState(false);
+  const [isSidebarCollapsed, setIsSidebarCollapsed] = useState(false);
   const [showLogoutModal, setShowLogoutModal] = useState(false);
   const [selectedDocumentId, setSelectedDocumentId] = useState(null);
   const [activeChatId, setActiveChatId] = useState(null);
@@ -151,7 +152,9 @@ function Home() {
 
       <Sidebar
         isOpen={isSidebarOpen}
+        isCollapsed={isSidebarCollapsed}
         onClose={() => setIsSidebarOpen(false)}
+        onToggleCollapse={() => setIsSidebarCollapsed((prev) => !prev)}
         chats={chats}
         setChats={setChats}
         activeChatId={activeChatId}

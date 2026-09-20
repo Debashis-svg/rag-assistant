@@ -1,4 +1,6 @@
 import {
+  ChevronLeft,
+  ChevronRight,
   LogOut,
   MessageSquare,
   MoreVertical,
@@ -14,7 +16,9 @@ import BrandMark from './BrandMark.jsx';
 
 function Sidebar({
   isOpen,
+  isCollapsed,
   onClose,
+  onToggleCollapse,
   chats,
   setChats,
   activeChatId,
@@ -67,17 +71,17 @@ function Sidebar({
 
   return (
     <aside
-      className={`fixed inset-y-0 left-0 z-40 flex w-80 flex-col border-r border-slate-200 bg-white transition-transform duration-300 dark:border-neutral-800 dark:bg-black lg:static lg:translate-x-0 ${
+      className={`fixed inset-y-0 left-0 z-40 flex w-80 flex-col border-r border-slate-200 bg-white transition-[transform,width] duration-300 dark:border-neutral-800 dark:bg-black lg:static lg:translate-x-0 ${
         isOpen ? 'translate-x-0' : '-translate-x-full'
-      }`}
+      } ${isCollapsed ? 'lg:w-20' : 'lg:w-80'}`}
     >
       <div className="flex h-16 shrink-0 items-center justify-between border-b border-slate-200 px-5">
-        <div className="flex items-center gap-3">
+        <div className={`flex min-w-0 items-center gap-3 ${isCollapsed ? 'lg:mx-auto' : ''}`}>
           <div className="flex h-10 w-10 items-center justify-center rounded-full bg-slate-900 text-white">
             <BrandMark size="compact" />
           </div>
 
-          <div>
+          <div className={`min-w-0 transition-[opacity,width] duration-200 ${isCollapsed ? 'lg:w-0 lg:overflow-hidden lg:opacity-0' : 'lg:opacity-100'}`}>
             <h1 className="text-base font-bold text-slate-900">
               QueryNest
             </h1>
@@ -96,6 +100,15 @@ function Sidebar({
         >
           <X size={20} />
         </button>
+
+        <button
+          type="button"
+          onClick={onToggleCollapse}
+          className="hidden h-9 w-9 shrink-0 items-center justify-center rounded-xl text-slate-500 transition hover:bg-slate-100 hover:text-slate-900 lg:flex"
+          aria-label={isCollapsed ? 'Expand sidebar' : 'Collapse sidebar'}
+        >
+          {isCollapsed ? <ChevronRight size={19} /> : <ChevronLeft size={19} />}
+        </button>
       </div>
 
       <div className="flex-1 overflow-y-auto">
@@ -103,18 +116,20 @@ function Sidebar({
           <button
             type="button"
             onClick={onNewChat}
-            className="flex w-full items-center justify-center gap-2 rounded-xl border border-black bg-black px-4 py-3 text-sm font-semibold text-white transition hover:bg-slate-900 dark:border-white dark:bg-white dark:text-black dark:hover:bg-slate-200"
+            className={`flex w-full items-center justify-center rounded-xl border border-black bg-black py-3 text-sm font-semibold text-white transition hover:bg-slate-900 dark:border-white dark:bg-white dark:text-black dark:hover:bg-slate-200 ${isCollapsed ? 'lg:px-0' : 'gap-2 px-4'}`}
           >
             <Plus size={18} />
-            New Chat
+            <span className={`transition-[opacity,width] duration-200 ${isCollapsed ? 'lg:w-0 lg:overflow-hidden lg:opacity-0' : 'lg:opacity-100'}`}>
+              New Chat
+            </span>
           </button>
         </div>
 
         <section className="p-4">
-          <div className="mb-3 flex items-center gap-2">
+          <div className={`mb-3 flex items-center gap-2 ${isCollapsed ? 'lg:justify-center' : ''}`}>
             <MessageSquare size={16} className="text-slate-500" />
 
-            <h2 className="text-xs font-bold uppercase tracking-wider text-slate-500">
+            <h2 className={`text-xs font-bold uppercase tracking-wider text-slate-500 transition-[opacity,width] duration-200 ${isCollapsed ? 'lg:w-0 lg:overflow-hidden lg:opacity-0' : 'lg:opacity-100'}`}>
               Recent Chats
             </h2>
           </div>
@@ -141,10 +156,11 @@ function Sidebar({
                         onSelectChat(chat.id);
                       }
                     }}
-                    className="min-w-0 flex-1 px-3 py-2.5 text-left disabled:cursor-wait"
+                    className={`min-w-0 flex-1 py-2.5 text-left disabled:cursor-wait ${isCollapsed ? 'lg:px-0 lg:text-center' : 'px-3'}`}
                   >
+                    <MessageSquare className={`mx-auto text-slate-400 ${isCollapsed ? 'lg:block' : 'lg:hidden'}`} size={16} />
                     <p
-                      className={`truncate text-sm ${
+                      className={`truncate text-sm transition-[opacity,width] duration-200 ${isCollapsed ? 'lg:w-0 lg:overflow-hidden lg:opacity-0' : 'lg:opacity-100'} ${
                         activeChatId === chat.id
                           ? 'font-semibold text-slate-900 dark:text-white'
                           : 'font-medium text-slate-600 dark:text-slate-300'
@@ -161,7 +177,7 @@ function Sidebar({
                         prev === chat.id ? null : chat.id
                       )
                     }
-                    className="mr-2 flex h-7 w-7 items-center justify-center rounded-lg text-slate-400 transition hover:bg-white hover:text-slate-700 dark:hover:bg-neutral-800 dark:hover:text-white"
+                    className={`mr-2 flex h-7 w-7 items-center justify-center rounded-lg text-slate-400 transition hover:bg-white hover:text-slate-700 dark:hover:bg-neutral-800 dark:hover:text-white ${isCollapsed ? 'lg:hidden' : ''}`}
                     aria-label={`Options for ${chat.title}`}
                   >
                     <MoreVertical size={16} />
@@ -291,10 +307,12 @@ function Sidebar({
         <button
           type="button"
           onClick={onLogout}
-          className="flex w-full items-center gap-3 rounded-xl px-3 py-2.5 text-sm font-medium text-red-500 transition hover:bg-red-50 hover:text-red-600"
+          className={`flex w-full items-center rounded-xl py-2.5 text-sm font-medium text-red-500 transition hover:bg-red-50 hover:text-red-600 ${isCollapsed ? 'lg:justify-center lg:px-0' : 'gap-3 px-3'}`}
         >
           <LogOut size={18} />
-          Logout
+          <span className={`transition-[opacity,width] duration-200 ${isCollapsed ? 'lg:w-0 lg:overflow-hidden lg:opacity-0' : 'lg:opacity-100'}`}>
+            Logout
+          </span>
         </button>
       </div>
     </aside>

@@ -69,7 +69,7 @@ const askQuestion = async (req, res) => {
       ? { context: 'CASUAL_CONVERSATION', sources: [] }
       : await prepareRagContext({
           question: question.trim(),
-          history: history.slice(0, -1),
+          history: history.slice(0, -1), // Take all elements of history except the last one
           documentId: chatDocumentId,
           userId: req.userId
         });

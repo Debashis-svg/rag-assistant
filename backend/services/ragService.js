@@ -242,7 +242,7 @@ ${item.metadata?.text || ''}
 
     return {
         rewrittenQuery,
-        context,
+        context, // it is nothing but final filtered similar vectors
         sources
     };
 };
