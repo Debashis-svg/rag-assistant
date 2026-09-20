@@ -78,9 +78,8 @@ function Sidebar({
         <button
           type="button"
           onClick={isCollapsed ? onToggleCollapse : undefined}
-          className={`flex min-w-0 items-center gap-3 text-left ${isCollapsed ? 'cursor-pointer rounded-xl lg:mx-auto lg:p-1.5 lg:transition lg:hover:bg-slate-100' : 'cursor-default'}`}
+          className={`flex min-w-0 items-center gap-3 text-left ${isCollapsed ? 'cursor-pointer rounded-xl lg:mx-auto lg:p-1.5' : 'cursor-default'}`}
           aria-label={isCollapsed ? 'Expand sidebar' : undefined}
-          title={isCollapsed ? 'Expand sidebar' : undefined}
         >
           <div className="flex h-10 w-10 items-center justify-center rounded-full bg-slate-900 text-white">
             <BrandMark size="compact" />
