@@ -3,7 +3,6 @@ import {
   MessageSquare,
   MoreVertical,
   PanelLeftClose,
-  PanelLeftOpen,
   Pencil,
   Plus,
   Trash2,
@@ -76,7 +75,13 @@ function Sidebar({
       } ${isCollapsed ? 'lg:w-20' : 'lg:w-80'}`}
     >
       <div className={`relative flex h-16 shrink-0 items-center border-b border-slate-200 ${isCollapsed ? 'lg:justify-center lg:px-3' : 'justify-between px-5'}`}>
-        <div className={`flex min-w-0 items-center gap-3 ${isCollapsed ? 'lg:mx-auto' : ''}`}>
+        <button
+          type="button"
+          onClick={isCollapsed ? onToggleCollapse : undefined}
+          className={`flex min-w-0 items-center gap-3 text-left ${isCollapsed ? 'cursor-pointer rounded-xl lg:mx-auto lg:p-1.5 lg:transition lg:hover:bg-slate-100' : 'cursor-default'}`}
+          aria-label={isCollapsed ? 'Expand sidebar' : undefined}
+          title={isCollapsed ? 'Expand sidebar' : undefined}
+        >
           <div className="flex h-10 w-10 items-center justify-center rounded-full bg-slate-900 text-white">
             <BrandMark size="compact" />
           </div>
@@ -90,7 +95,7 @@ function Sidebar({
               RAG Assistant
             </p>
           </div>
-        </div>
+        </button>
 
         <button
           type="button"
@@ -101,15 +106,17 @@ function Sidebar({
           <X size={20} />
         </button>
 
-        <button
+        {!isCollapsed && (
+          <button
           type="button"
           onClick={onToggleCollapse}
-          className={`absolute hidden shrink-0 items-center justify-center rounded-lg text-slate-500 transition hover:bg-slate-100 hover:text-slate-900 lg:flex ${isCollapsed ? 'bottom-2 right-2 h-7 w-7' : 'right-3 top-1/2 h-9 w-9 -translate-y-1/2 rounded-xl'}`}
-          aria-label={isCollapsed ? 'Expand sidebar' : 'Collapse sidebar'}
-          title={isCollapsed ? 'Expand sidebar' : 'Collapse sidebar'}
+          className="absolute right-3 top-1/2 hidden h-9 w-9 -translate-y-1/2 shrink-0 items-center justify-center rounded-xl text-slate-500 transition hover:bg-slate-100 hover:text-slate-900 lg:flex"
+          aria-label="Collapse sidebar"
+          title="Collapse sidebar"
         >
-          {isCollapsed ? <PanelLeftOpen size={19} /> : <PanelLeftClose size={19} />}
-        </button>
+            <PanelLeftClose size={19} />
+          </button>
+        )}
       </div>
 
       <div className="flex-1 overflow-y-auto">
@@ -127,7 +134,7 @@ function Sidebar({
           </button>
         </div>
 
-        <section className={`p-4 ${isCollapsed ? 'lg:p-3' : ''}`}>
+        <section className={`p-4 ${isCollapsed ? 'lg:hidden' : ''}`}>
           <div className={`mb-3 flex items-center gap-2 ${isCollapsed ? 'lg:mb-2 lg:justify-center' : ''}`}>
             <MessageSquare size={16} className="text-slate-500" />
 
