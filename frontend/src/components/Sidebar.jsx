@@ -104,7 +104,7 @@ function Sidebar({
         <button
           type="button"
           onClick={onToggleCollapse}
-          className="absolute right-3 hidden h-9 w-9 shrink-0 items-center justify-center rounded-xl text-slate-500 transition hover:bg-slate-100 hover:text-slate-900 lg:flex"
+          className={`absolute hidden shrink-0 items-center justify-center rounded-lg text-slate-500 transition hover:bg-slate-100 hover:text-slate-900 lg:flex ${isCollapsed ? 'bottom-2 right-2 h-7 w-7' : 'right-3 top-1/2 h-9 w-9 -translate-y-1/2 rounded-xl'}`}
           aria-label={isCollapsed ? 'Expand sidebar' : 'Collapse sidebar'}
           title={isCollapsed ? 'Expand sidebar' : 'Collapse sidebar'}
         >
