@@ -28,13 +28,17 @@ function Sidebar({
 }) {
   const [openMenuId, setOpenMenuId] = useState(null);
   const [deleteChatId, setDeleteChatId] = useState(null);
+  const [isDeletingChat, setIsDeletingChat] = useState(false);
   const [renameChat, setRenameChat] = useState(null);
   const [renameTitle, setRenameTitle] = useState('');
+  const [isSavingRename, setIsSavingRename] = useState(false);
 
   const handleRenameChat = async () => {
     if (!renameTitle.trim() || !renameChat) {
       return;
     }
+
+    setIsSavingRename(true);
 
     try {
       const response = await api.put(`/chat/${renameChat.id}`, {
@@ -52,10 +56,14 @@ function Sidebar({
       setOpenMenuId(null);
     } catch (error) {
       console.error('Unable to rename chat');
+    } finally {
+      setIsSavingRename(false);
     }
   };
 
   const handleDeleteChat = async () => {
+    setIsDeletingChat(true);
+
     try {
       await api.delete(`/chat/${deleteChatId}`);
       setChats((prev) =>
@@ -65,6 +73,8 @@ function Sidebar({
       setDeleteChatId(null);
     } catch (error) {
       console.error('Unable to delete chat');
+    } finally {
+      setIsDeletingChat(false);
     }
   };
 
@@ -239,16 +249,18 @@ function Sidebar({
               <button
                 type="button"
                 onClick={() => setDeleteChatId(null)}
-                className="flex-1 rounded-xl border border-slate-300 px-4 py-2.5 text-sm font-semibold text-slate-700 hover:bg-slate-50"
+                disabled={isDeletingChat}
+                className="flex-1 rounded-xl border border-slate-300 px-4 py-2.5 text-sm font-semibold text-slate-700 transition hover:bg-slate-50 hover:text-slate-900 disabled:cursor-not-allowed disabled:opacity-60 dark:border-neutral-700 dark:text-slate-200 dark:hover:bg-neutral-800 dark:hover:text-white"
               >
                 Cancel
               </button>
               <button
                 type="button"
                 onClick={handleDeleteChat}
-                className="flex-1 rounded-xl bg-red-500 px-4 py-2.5 text-sm font-semibold text-white hover:bg-red-600"
+                disabled={isDeletingChat}
+                className="flex-1 rounded-xl bg-red-500 px-4 py-2.5 text-sm font-semibold text-white transition hover:bg-red-600 hover:text-white disabled:cursor-not-allowed disabled:opacity-60"
               >
-                Delete
+                {isDeletingChat ? 'Deleting...' : 'Delete'}
               </button>
             </div>
           </div>
@@ -296,16 +308,17 @@ function Sidebar({
               <button
                 type="button"
                 onClick={() => setRenameChat(null)}
-                className="flex-1 rounded-xl border border-slate-300 px-4 py-2.5 text-sm font-semibold text-slate-700 hover:bg-slate-50"
+                disabled={isSavingRename}
+                className="flex-1 rounded-xl border border-slate-300 px-4 py-2.5 text-sm font-semibold text-slate-700 transition hover:bg-slate-50 hover:text-slate-900 disabled:cursor-not-allowed disabled:opacity-60 dark:border-neutral-700 dark:text-slate-200 dark:hover:bg-neutral-800 dark:hover:text-white"
               >
                 Cancel
               </button>
               <button
                 type="submit"
-                disabled={!renameTitle.trim()}
-                className="flex-1 rounded-xl bg-slate-900 px-4 py-2.5 text-sm font-semibold text-white hover:bg-slate-800 disabled:cursor-not-allowed disabled:bg-slate-300"
+                disabled={!renameTitle.trim() || isSavingRename}
+                className="flex-1 rounded-xl bg-slate-900 px-4 py-2.5 text-sm font-semibold text-white transition hover:bg-slate-800 hover:text-white disabled:cursor-not-allowed disabled:bg-slate-300 disabled:text-slate-500 dark:bg-white dark:text-black dark:hover:bg-slate-200 dark:hover:text-black dark:disabled:bg-neutral-700 dark:disabled:text-neutral-400"
               >
-                Save
+                {isSavingRename ? 'Saving...' : 'Save'}
               </button>
             </div>
           </form>
